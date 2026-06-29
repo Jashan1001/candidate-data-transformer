@@ -239,6 +239,8 @@ class MergeEngine:
         if winner.value is None and not allow_none:
             return None
 
+        observed_sources = sorted({o.source.value for o in candidates})
+
         provenance.append(
             Provenance(
                 field=field,
@@ -246,6 +248,7 @@ class MergeEngine:
                 method=winner.method,
                 confidence=round(final_conf, 4),
                 raw_value=winner.value,
+                observed_sources=observed_sources,
             )
         )
 
@@ -308,6 +311,7 @@ class MergeEngine:
                     method="union",
                     confidence=round(best_conf, 4),
                     raw_value=deduplicate(result),
+                    observed_sources=sorted({o.source.value for o in candidates}),
                 )
             )
 
@@ -326,9 +330,10 @@ class MergeEngine:
         if not candidates:
             return None
 
-        best: tuple[LocationCanonical | None, float, SourceType | None] = (
+        best: tuple[LocationCanonical | None, float, SourceType | None, Any] = (
             None,
             0.0,
+            None,
             None,
         )
         for o in sorted(
@@ -338,9 +343,9 @@ class MergeEngine:
             loc, conf = normalize_location(str(o.value))
             effective_conf = conf * o.confidence
             if loc and effective_conf > best[1]:
-                best = (loc, effective_conf, o.source)
+                best = (loc, effective_conf, o.source, o.value)
 
-        resolved, conf, src = best
+        resolved, conf, src, raw_value = best
         if resolved and src:
             provenance.append(
                 Provenance(
@@ -348,7 +353,8 @@ class MergeEngine:
                     source=src,
                     method="normalized",
                     confidence=round(conf, 4),
-                    raw_value=None,
+                    raw_value=raw_value,
+                    observed_sources=sorted({o.source.value for o in candidates}),
                 )
             )
         return resolved
@@ -437,6 +443,7 @@ class MergeEngine:
                         sum(s.confidence for s in result) / len(result), 4
                     ),
                     raw_value=f"{len(result)} skills merged",
+                    observed_sources=sorted({o.source.value for o in candidates}),
                 )
             )
 
