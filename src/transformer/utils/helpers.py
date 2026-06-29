@@ -18,8 +18,8 @@ from typing import Any, Iterator
 # Deep path helpers
 # ---------------------------------------------------------------------------
 
-_INDEX_RE = re.compile(r"^(.+?)\[(\d+)\]$")   # e.g.  phones[0]
-_GLOB_RE  = re.compile(r"^(.+?)\[\]\.(.+)$")   # e.g.  skills[].name
+_INDEX_RE = re.compile(r"^(.+?)\[(\d+)\]$")  # e.g.  phones[0]
+_GLOB_RE = re.compile(r"^(.+?)\[\]\.(.+)$")  # e.g.  skills[].name
 
 
 def deep_get(obj: Any, path: str, default: Any = None) -> Any:
@@ -148,6 +148,7 @@ def deep_set(obj: dict[str, Any], path: str, value: Any) -> None:
 # Dict utilities
 # ---------------------------------------------------------------------------
 
+
 def flatten_dict(
     obj: dict[str, Any],
     *,
@@ -185,6 +186,7 @@ def flatten_dict(
 # Deduplication
 # ---------------------------------------------------------------------------
 
+
 def deduplicate(items: list[Any], *, key: str | None = None) -> list[Any]:
     """
     Remove duplicates from a list, preserving order of first occurrence.
@@ -209,7 +211,9 @@ def deduplicate(items: list[Any], *, key: str | None = None) -> list[Any]:
     for item in items:
         fingerprint: Any
         if key is not None:
-            fingerprint = item.get(key) if isinstance(item, dict) else getattr(item, key, item)
+            fingerprint = (
+                item.get(key) if isinstance(item, dict) else getattr(item, key, item)
+            )
         else:
             try:
                 fingerprint = item
@@ -225,6 +229,7 @@ def deduplicate(items: list[Any], *, key: str | None = None) -> list[Any]:
 # ---------------------------------------------------------------------------
 # Safe coercion
 # ---------------------------------------------------------------------------
+
 
 def safe_float(val: Any, *, default: float | None = None) -> float | None:
     """
@@ -279,6 +284,7 @@ def safe_list(val: Any) -> list[Any]:
 # Identity / UUID
 # ---------------------------------------------------------------------------
 
+
 def generate_candidate_id(
     *,
     email: str | None = None,
@@ -318,6 +324,7 @@ def generate_candidate_id(
 # Path utilities
 # ---------------------------------------------------------------------------
 
+
 def ensure_parent(path: str | Path) -> Path:
     """
     Ensure the parent directory of *path* exists (creates it if needed).
@@ -336,6 +343,7 @@ def with_suffix(path: str | Path, suffix: str) -> Path:
 # ---------------------------------------------------------------------------
 # Iterable helpers
 # ---------------------------------------------------------------------------
+
 
 def chunked(iterable: list[Any], size: int) -> Iterator[list[Any]]:
     """

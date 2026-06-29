@@ -81,12 +81,9 @@ class ConfidenceEngine:
         source_scores = []
 
         for r in records:
-
             base = SOURCE_BASE_CONFIDENCE.get(r.source, 0.5)
 
-            source_scores.append(
-                (base + r.confidence) / 2
-            )
+            source_scores.append((base + r.confidence) / 2)
 
         score = mean(source_scores)
 
@@ -106,10 +103,7 @@ class ConfidenceEngine:
         if len(records) <= 1:
             return 0.0
 
-        unique_sources = {
-            r.source
-            for r in records
-        }
+        unique_sources = {r.source for r in records}
 
         if len(unique_sources) >= 3:
             return 0.10
@@ -142,7 +136,6 @@ class ConfidenceEngine:
         present = 0
 
         for value in fields:
-
             if value is None:
                 continue
 

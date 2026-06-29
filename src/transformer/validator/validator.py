@@ -21,9 +21,7 @@ from transformer.utils.logger import get_logger
 
 log = get_logger(__name__)
 
-_EMAIL_RE = re.compile(
-    r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
-)
+_EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}")
 
 _PHONE_RE = re.compile(r"^\+\d{7,15}$")
 
@@ -96,16 +94,13 @@ class Validator:
         result = ValidationResult()
 
         for field in config.fields:
-
             if not field.path:
                 result.add_error("Field path cannot be empty.")
 
             if profile is not None and field.from_:
                 value = deep_get(profile.model_dump(), field.from_)
                 if value is None:
-                    result.add_warning(
-                        f"Field '{field.from_}' does not exist."
-                    )
+                    result.add_warning(f"Field '{field.from_}' does not exist.")
 
         return result
 
@@ -122,6 +117,9 @@ class Validator:
         if not profile.full_name:
             result.add_warning("Missing full_name.")
 
+        if not profile.emails:
+            result.add_warning("Missing email.")
+
     def _validate_emails(
         self,
         profile: CanonicalProfile,
@@ -130,9 +128,7 @@ class Validator:
 
         for email in profile.emails:
             if not _EMAIL_RE.fullmatch(email):
-                result.add_warning(
-                    f"Invalid email format: {email}"
-                )
+                result.add_warning(f"Invalid email format: {email}")
 
     def _validate_phones(
         self,
@@ -142,9 +138,7 @@ class Validator:
 
         for phone in profile.phones:
             if not _PHONE_RE.fullmatch(phone):
-                result.add_warning(
-                    f"Phone is not valid E.164: {phone}"
-                )
+                result.add_warning(f"Phone is not valid E.164: {phone}")
 
     def _validate_confidence(
         self,
@@ -153,12 +147,8 @@ class Validator:
     ) -> None:
 
         if not (0.0 <= profile.overall_confidence <= 1.0):
-            result.add_error(
-                "overall_confidence must be between 0 and 1."
-            )
+            result.add_error("overall_confidence must be between 0 and 1.")
 
         for skill in profile.skills:
             if not (0.0 <= skill.confidence <= 1.0):
-                result.add_error(
-                    f"Invalid confidence for skill '{skill.name}'."
-                )
+                result.add_error(f"Invalid confidence for skill '{skill.name}'.")

@@ -52,10 +52,7 @@ _CONFLICT_PENALTY = 0.05
 # Minimum confidence threshold — below this the field is treated as absent
 _MIN_CONFIDENCE = 0.1
 
-_SOURCE_PRIORITY_INDEX = {
-    src: i
-    for i, src in enumerate(SOURCE_PRIORITY)
-}
+_SOURCE_PRIORITY_INDEX = {src: i for i, src in enumerate(SOURCE_PRIORITY)}
 _LOWEST_PRIORITY = 999
 
 
@@ -112,18 +109,18 @@ class MergeEngine:
 
         provenance: list[Provenance] = []
 
-        profile.full_name  = self._resolve_scalar("full_name",  obs, provenance)
-        profile.headline   = self._resolve_scalar("headline",   obs, provenance)
+        profile.full_name = self._resolve_scalar("full_name", obs, provenance)
+        profile.headline = self._resolve_scalar("headline", obs, provenance)
         profile.years_experience = safe_float(
             self._resolve_scalar("years_experience", obs, provenance)
         )
-        profile.location   = self._resolve_location(obs, provenance)
-        profile.emails     = self._resolve_list("emails",  obs, provenance)
-        profile.phones     = self._resolve_list("phones",  obs, provenance)
-        profile.links      = self._resolve_links(obs, provenance)
-        profile.skills     = self._resolve_skills(obs, provenance)
+        profile.location = self._resolve_location(obs, provenance)
+        profile.emails = self._resolve_list("emails", obs, provenance)
+        profile.phones = self._resolve_list("phones", obs, provenance)
+        profile.links = self._resolve_links(obs, provenance)
+        profile.skills = self._resolve_skills(obs, provenance)
         profile.experience = self._resolve_experience(normalised)
-        profile.education  = self._resolve_education(normalised)
+        profile.education = self._resolve_education(normalised)
 
         profile.provenance = provenance
 
@@ -176,7 +173,9 @@ class MergeEngine:
         src = raw.source
         base = SOURCE_BASE_CONFIDENCE[src]
 
-        def _add(field: str, value: Any, conf: float = base, method: str = "extracted") -> None:
+        def _add(
+            field: str, value: Any, conf: float = base, method: str = "extracted"
+        ) -> None:
             if value is None or (isinstance(value, (str, list)) and not value):
                 return
             obs[field].append(
@@ -190,11 +189,11 @@ class MergeEngine:
             )
 
         _add("full_name", raw.full_name)
-        _add("headline",  raw.headline)
+        _add("headline", raw.headline)
         _add("years_experience", raw.years_experience)
         _add("location_raw", raw.location_raw)
         _add("linkedin_url", raw.linkedin_url)
-        _add("github_url",   raw.github_url)
+        _add("github_url", raw.github_url)
 
         if raw.emails:
             _add("emails", raw.emails, conf=base, method="normalized")
@@ -224,30 +223,31 @@ class MergeEngine:
         # Sort by source priority (lower index = higher priority)
         def _priority(o: FieldObservation) -> tuple[int, float]:
             prio = _SOURCE_PRIORITY_INDEX.get(o.source, _LOWEST_PRIORITY)
-            return prio, -o.confidence   # negate confidence so higher sorts first
+            return prio, -o.confidence  # negate confidence so higher sorts first
 
         sorted_obs = sorted(candidates, key=_priority)
         winner = sorted_obs[0]
 
         # Apply a small confidence penalty for each conflicting value
-        unique_values = {
-            self._scalar_fingerprint(o.value)
-            for o in candidates
-        }
+        unique_values = {self._scalar_fingerprint(o.value) for o in candidates}
         unique_values.discard(None)
         n_conflicts = max(len(unique_values) - 1, 0)
-        final_conf = max(winner.confidence - n_conflicts * _CONFLICT_PENALTY, _MIN_CONFIDENCE)
+        final_conf = max(
+            winner.confidence - n_conflicts * _CONFLICT_PENALTY, _MIN_CONFIDENCE
+        )
 
         if winner.value is None and not allow_none:
             return None
 
-        provenance.append(Provenance(
-            field=field,
-            source=winner.source,
-            method=winner.method,
-            confidence=round(final_conf, 4),
-            raw_value=winner.value,
-        ))
+        provenance.append(
+            Provenance(
+                field=field,
+                source=winner.source,
+                method=winner.method,
+                confidence=round(final_conf, 4),
+                raw_value=winner.value,
+            )
+        )
 
         log.debug(
             "Resolved scalar",
@@ -284,28 +284,32 @@ class MergeEngine:
             candidates,
             key=lambda o: _SOURCE_PRIORITY_INDEX.get(o.source, _LOWEST_PRIORITY),
         )
-        best_conf  = 0.0
+        best_conf = 0.0
         best_source: SourceType = ordered[0].source
 
         for obs_item in ordered:
-            vals = obs_item.value if isinstance(obs_item.value, list) else [obs_item.value]
+            vals = (
+                obs_item.value if isinstance(obs_item.value, list) else [obs_item.value]
+            )
             for val in vals:
                 norm = str(val).strip()
                 if norm and norm not in seen:
                     seen.add(norm)
                     result.append(norm)
                     if obs_item.confidence > best_conf:
-                        best_conf  = obs_item.confidence
+                        best_conf = obs_item.confidence
                         best_source = obs_item.source
 
         if result:
-            provenance.append(Provenance(
-                field=field,
-                source=best_source,
-                method="union",
-                confidence=round(best_conf, 4),
-                raw_value=deduplicate(result),
-            ))
+            provenance.append(
+                Provenance(
+                    field=field,
+                    source=best_source,
+                    method="union",
+                    confidence=round(best_conf, 4),
+                    raw_value=deduplicate(result),
+                )
+            )
 
         return deduplicate(result)
 
@@ -322,7 +326,11 @@ class MergeEngine:
         if not candidates:
             return None
 
-        best: tuple[LocationCanonical | None, float, SourceType | None] = (None, 0.0, None)
+        best: tuple[LocationCanonical | None, float, SourceType | None] = (
+            None,
+            0.0,
+            None,
+        )
         for o in sorted(
             candidates,
             key=lambda o: _SOURCE_PRIORITY_INDEX.get(o.source, _LOWEST_PRIORITY),
@@ -334,13 +342,15 @@ class MergeEngine:
 
         resolved, conf, src = best
         if resolved and src:
-            provenance.append(Provenance(
-                field="location",
-                source=src,
-                method="normalized",
-                confidence=round(conf, 4),
-                raw_value=None,
-            ))
+            provenance.append(
+                Provenance(
+                    field="location",
+                    source=src,
+                    method="normalized",
+                    confidence=round(conf, 4),
+                    raw_value=None,
+                )
+            )
         return resolved
 
     # ------------------------------------------------------------------
@@ -352,13 +362,15 @@ class MergeEngine:
         obs: dict[str, list[FieldObservation]],
         provenance: list[Provenance],
     ) -> LinksCanonical:
-        linkedin  = self._resolve_scalar("linkedin_url",   obs, provenance)
-        github    = self._resolve_scalar("github_url",     obs, provenance)
-        portfolio = self._resolve_list("portfolio_urls",   obs, provenance)
+        linkedin = self._resolve_scalar("linkedin_url", obs, provenance)
+        github = self._resolve_scalar("github_url", obs, provenance)
+        portfolio = self._resolve_list("portfolio_urls", obs, provenance)
         return LinksCanonical(
             linkedin=linkedin,
             github=github,
-            portfolio=[u for u in portfolio if "linkedin" not in u and "github" not in u],
+            portfolio=[
+                u for u in portfolio if "linkedin" not in u and "github" not in u
+            ],
             other=[],
         )
 
@@ -392,18 +404,22 @@ class MergeEngine:
             base_conf = max(src_conf.values())
             multi_source_bonus = min(0.05 * (len(sources) - 1), 0.15)
             final_conf = min(base_conf + multi_source_bonus, 1.0)
-            result.append(SkillCanonical(
-                name=name,
-                confidence=round(final_conf, 4),
-                sources=sources,
-            ))
+            result.append(
+                SkillCanonical(
+                    name=name,
+                    confidence=round(final_conf, 4),
+                    sources=sources,
+                )
+            )
 
         result.sort(key=lambda s: (-s.confidence, s.name))
 
         if result:
             source_confidence: dict[SourceType, float] = defaultdict(float)
             for o in candidates:
-                source_confidence[o.source] = max(source_confidence[o.source], o.confidence)
+                source_confidence[o.source] = max(
+                    source_confidence[o.source], o.confidence
+                )
 
             best_source = max(
                 source_confidence.items(),
@@ -412,13 +428,17 @@ class MergeEngine:
                     -_SOURCE_PRIORITY_INDEX.get(kv[0], _LOWEST_PRIORITY),
                 ),
             )[0]
-            provenance.append(Provenance(
-                field="skills",
-                source=best_source,
-                method="union",
-                confidence=round(sum(s.confidence for s in result) / len(result), 4),
-                raw_value=f"{len(result)} skills merged",
-            ))
+            provenance.append(
+                Provenance(
+                    field="skills",
+                    source=best_source,
+                    method="union",
+                    confidence=round(
+                        sum(s.confidence for s in result) / len(result), 4
+                    ),
+                    raw_value=f"{len(result)} skills merged",
+                )
+            )
 
         return result
 
@@ -441,7 +461,7 @@ class MergeEngine:
 
         for raw in ordered:
             for entry in raw.experience_raw:
-                title   = str(entry.get("title") or "").strip()
+                title = str(entry.get("title") or "").strip()
                 company = str(entry.get("company") or "").strip()
                 key = f"{title.lower()}|{company.lower()}"
                 if key in seen:
@@ -449,17 +469,19 @@ class MergeEngine:
                 seen.add(key)
 
                 start_raw = str(entry.get("start") or "")
-                end_raw   = str(entry.get("end")   or "")
+                end_raw = str(entry.get("end") or "")
                 start, _ = normalize_date(start_raw)
-                end, _   = normalize_date(end_raw)
+                end, _ = normalize_date(end_raw)
 
-                result.append(ExperienceCanonical(
-                    company=company or None,
-                    title=title or None,
-                    start=start,
-                    end=end,
-                    summary=str(entry.get("summary") or "").strip() or None,
-                ))
+                result.append(
+                    ExperienceCanonical(
+                        company=company or None,
+                        title=title or None,
+                        start=start,
+                        end=end,
+                        summary=str(entry.get("summary") or "").strip() or None,
+                    )
+                )
 
         return result
 
@@ -477,17 +499,19 @@ class MergeEngine:
         for raw in raws:
             for entry in raw.education_raw:
                 institution = str(entry.get("institution") or "").strip()
-                degree      = str(entry.get("degree")      or "").strip()
+                degree = str(entry.get("degree") or "").strip()
                 key = f"{institution.lower()}|{degree.lower()}"
                 if key in seen:
                     continue
                 seen.add(key)
-                result.append(EducationCanonical(
-                    institution=institution or None,
-                    degree=degree or None,
-                    field=entry.get("field"),
-                    end_year=entry.get("end_year"),
-                ))
+                result.append(
+                    EducationCanonical(
+                        institution=institution or None,
+                        degree=degree or None,
+                        field=entry.get("field"),
+                        end_year=entry.get("end_year"),
+                    )
+                )
 
         return result
 
@@ -505,7 +529,7 @@ class MergeEngine:
                 return r.raw_id
         all_emails = [e for r in raws for e in r.emails]
         all_phones = [p for r in raws for p in r.phones]
-        all_names  = [r.full_name for r in raws if r.full_name]
+        all_names = [r.full_name for r in raws if r.full_name]
         if all_emails:
             return generate_candidate_id(email=all_emails[0])
         if all_phones:

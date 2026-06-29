@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 
 
 class FieldConfig(BaseModel):
-    path: str                               # output key name
+    path: str  # output key name
     from_: Optional[str] = Field(None, alias="from")  # source path in canonical model
     type: Optional[
         Literal[
@@ -25,7 +25,7 @@ class FieldConfig(BaseModel):
             "boolean",
             "object",
         ]
-    ] = None             # string | string[] | number | etc.
+    ] = None  # string | string[] | number | etc.
     required: bool = False
     normalize: Optional[
         Literal[
@@ -33,8 +33,10 @@ class FieldConfig(BaseModel):
             "canonical",
             "ISO3166",
         ]
-    ] = None        # "E164" | "canonical" | "ISO3166" | None
-    on_missing: Optional[Literal["null", "omit", "error"]] = None  # field-level override
+    ] = None  # "E164" | "canonical" | "ISO3166" | None
+    on_missing: Optional[Literal["null", "omit", "error"]] = (
+        None  # field-level override
+    )
 
     model_config = {"populate_by_name": True}
 
@@ -56,6 +58,7 @@ class OutputConfig(BaseModel):
       "on_missing": "null"
     }
     """
+
     fields: list[FieldConfig] = Field(default_factory=list)
     include_confidence: bool = True
     include_provenance: bool = False

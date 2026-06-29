@@ -26,11 +26,11 @@ from typing import Any
 _RESET = "\033[0m"
 _BOLD = "\033[1m"
 _COLOURS = {
-    "DEBUG":    "\033[36m",    # cyan
-    "INFO":     "\033[32m",    # green
-    "WARNING":  "\033[33m",    # yellow
-    "ERROR":    "\033[31m",    # red
-    "CRITICAL": "\033[35m",    # magenta
+    "DEBUG": "\033[36m",  # cyan
+    "INFO": "\033[32m",  # green
+    "WARNING": "\033[33m",  # yellow
+    "ERROR": "\033[31m",  # red
+    "CRITICAL": "\033[35m",  # magenta
 }
 
 _DEBUG_MODE: bool = os.getenv("DEBUG", "").lower() in {"1", "true", "yes"}
@@ -39,6 +39,7 @@ _DEBUG_MODE: bool = os.getenv("DEBUG", "").lower() in {"1", "true", "yes"}
 # ---------------------------------------------------------------------------
 # Custom formatter
 # ---------------------------------------------------------------------------
+
 
 class _StructuredFormatter(logging.Formatter):
     """
@@ -81,6 +82,7 @@ class _StructuredFormatter(logging.Formatter):
 # ---------------------------------------------------------------------------
 # TransformerLogger — thin wrapper that supports structured kwargs
 # ---------------------------------------------------------------------------
+
 
 class TransformerLogger:
     """

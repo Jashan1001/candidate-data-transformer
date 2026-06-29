@@ -70,8 +70,11 @@ class CandidateTransformer:
         recruiter_csv: str | None = None,
         ats_json: str | None = None,
         github: str | None = None,
-        config: OutputConfig,
+        config: OutputConfig | None = None,
     ) -> dict[str, Any]:
+
+        if config is None:
+            raise ValueError("Output config is required.")
 
         raw_candidates: list[RawCandidate] = []
 
@@ -81,21 +84,15 @@ class CandidateTransformer:
 
         if recruiter_csv:
             log.info("Extracting recruiter CSV")
-            raw_candidates.append(
-                self.csv_extractor.safe_extract(recruiter_csv)
-            )
+            raw_candidates.append(self.csv_extractor.safe_extract(recruiter_csv))
 
         if ats_json:
             log.info("Extracting ATS JSON")
-            raw_candidates.append(
-                self.ats_extractor.safe_extract(ats_json)
-            )
+            raw_candidates.append(self.ats_extractor.safe_extract(ats_json))
 
         if github:
             log.info("Extracting GitHub")
-            raw_candidates.append(
-                self.github_extractor.safe_extract(github)
-            )
+            raw_candidates.append(self.github_extractor.safe_extract(github))
 
         if not raw_candidates:
             raise ValueError("No input sources were supplied.")
@@ -120,10 +117,7 @@ class CandidateTransformer:
         validation = self.validator.validate_profile(profile)
 
         if not validation.valid:
-
-            raise ValueError(
-                "\n".join(validation.errors)
-            )
+            raise ValueError("\n".join(validation.errors))
 
         if validation.warnings:
             for warning in validation.warnings:

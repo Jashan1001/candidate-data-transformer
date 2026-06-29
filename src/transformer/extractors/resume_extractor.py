@@ -24,22 +24,25 @@ from transformer.models.core import RawCandidate, SourceType
 # ---------------------------------------------------------------------------
 
 _EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}")
-_PHONE_RE = re.compile(
-    r"(?:\+?\d[\d\s\-().]{7,}\d)"
-)
+_PHONE_RE = re.compile(r"(?:\+?\d[\d\s\-().]{7,}\d)")
 _LINKEDIN_RE = re.compile(r"linkedin\.com/in/[\w\-]+", re.I)
 _GITHUB_RE = re.compile(r"github\.com/[\w\-]+", re.I)
 _YOE_RE = re.compile(r"(\d+)\+?\s*(?:years?|yrs?)(?:\s+of)?\s+experience", re.I)
+_YEARS_ONLY_RE = re.compile(r"(\d+)\+?\s*(?:years?|yrs?)\b", re.I)
 
 # Section header patterns
 _SECTION_HEADERS = {
     "experience": re.compile(
         r"^(work\s+)?experience|employment\s*history|work\s*history|professional\s*experience",
-        re.I | re.M
+        re.I | re.M,
     ),
     "education": re.compile(r"^education|academic|qualifications?", re.I | re.M),
-    "skills": re.compile(r"^skills?|technical\s+skills?|core\s+competencies|technologies", re.I | re.M),
-    "summary": re.compile(r"^(professional\s+)?summary|objective|about\s+me|profile", re.I | re.M),
+    "skills": re.compile(
+        r"^skills?|technical\s+skills?|core\s+competencies|technologies", re.I | re.M
+    ),
+    "summary": re.compile(
+        r"^(professional\s+)?summary|objective|about\s+me|profile", re.I | re.M
+    ),
 }
 
 # Date range: "Jun 2020 – Present" / "2019 - 2022" / "01/2018 - 05/2020"
@@ -47,29 +50,41 @@ _DATE_RANGE_RE = re.compile(
     r"((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{4}|\d{1,2}/\d{4}|\d{4})"
     r"\s*[-–—to]+\s*"
     r"((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{4}|\d{1,2}/\d{4}|\d{4}|[Pp]resent|[Cc]urrent)",
-    re.I
+    re.I,
 )
 
 
 class ResumeExtractor(BaseExtractor):
-
     def extract(self, source_input: str | Path) -> RawCandidate:
+        if isinstance(source_input, str) and not source_input.strip():
+            return self._empty()
+
         path = Path(source_input)
         suffix = path.suffix.lower()
         if suffix == ".pdf":
+            if not path.exists():
+                return self._empty()
             text = self._extract_pdf(path)
             source = SourceType.RESUME_PDF
         elif suffix in {".docx", ".doc"}:
+            if not path.exists():
+                return self._empty()
             text = self._extract_docx(path)
             source = SourceType.RESUME_DOCX
         else:
             # Treat as raw text
-            text = path.read_text(encoding="utf-8", errors="ignore") if path.exists() else str(source_input)
+            text = (
+                path.read_text(encoding="utf-8", errors="ignore")
+                if path.exists()
+                else str(source_input)
+            )
             source = SourceType.RESUME_PDF
 
         return self._parse_text(text, source)
 
-    def extract_from_text(self, text: str, source: SourceType = SourceType.RESUME_PDF) -> RawCandidate:
+    def extract_from_text(
+        self, text: str, source: SourceType = SourceType.RESUME_PDF
+    ) -> RawCandidate:
         """Allow injecting raw text directly (for testing)."""
         return self._parse_text(text, source)
 
@@ -80,10 +95,10 @@ class ResumeExtractor(BaseExtractor):
     def _extract_pdf(self, path: Path) -> str:
         try:
             import pdfplumber
+
             with pdfplumber.open(path) as pdf:
                 return "\n".join(
-                    page.extract_text() or ""
-                    for page in pdf.pages
+                    page.extract_text() or "" for page in pdf.pages
                 ).strip()
         except ImportError:
             raise RuntimeError("pdfplumber not installed. Run: pip install pdfplumber")
@@ -93,14 +108,13 @@ class ResumeExtractor(BaseExtractor):
     def _extract_docx(self, path: Path) -> str:
         try:
             from docx import Document
+
             doc = Document(str(path))
-            return "\n".join(
-                p.text
-                for p in doc.paragraphs
-                if p.text.strip()
-            )
+            return "\n".join(p.text for p in doc.paragraphs if p.text.strip())
         except ImportError:
-            raise RuntimeError("python-docx not installed. Run: pip install python-docx")
+            raise RuntimeError(
+                "python-docx not installed. Run: pip install python-docx"
+            )
         except Exception as exc:
             raise RuntimeError(f"DOCX extraction failed: {exc}")
 
@@ -113,19 +127,31 @@ class ResumeExtractor(BaseExtractor):
         if not text or not text.strip():
             return rc
 
+        text = text.strip()
+
         lines = text.splitlines()
         rc.full_name = self._extract_name(lines)
         rc.emails = _EMAIL_RE.findall(text)
         rc.phones = self._extract_phones(text)
 
         for m in _LINKEDIN_RE.finditer(text):
-            rc.linkedin_url = "https://" + m.group() if not m.group().startswith("http") else m.group()
+            rc.linkedin_url = (
+                "https://" + m.group()
+                if not m.group().startswith("http")
+                else m.group()
+            )
         for m in _GITHUB_RE.finditer(text):
-            rc.github_url = "https://" + m.group() if not m.group().startswith("http") else m.group()
+            rc.github_url = (
+                "https://" + m.group()
+                if not m.group().startswith("http")
+                else m.group()
+            )
 
         sections = self._split_sections(text)
         rc.headline = self._extract_headline(sections.get("summary", ""), lines)
-        rc.location_raw = self._extract_location(lines[:10])  # location usually near top
+        rc.location_raw = self._extract_location(
+            lines[:10]
+        )  # location usually near top
         rc.skills_raw = self._extract_skills(sections.get("skills", ""))
         rc.experience_raw = self._extract_experience(sections.get("experience", ""))
         rc.education_raw = self._extract_education(sections.get("education", ""))
@@ -133,6 +159,10 @@ class ResumeExtractor(BaseExtractor):
         yoe_match = _YOE_RE.search(text)
         if yoe_match:
             rc.years_experience = float(yoe_match.group(1))
+        else:
+            years_only_match = _YEARS_ONLY_RE.search(text)
+            if years_only_match:
+                rc.years_experience = float(years_only_match.group(1))
 
         return rc
 
@@ -155,14 +185,21 @@ class ResumeExtractor(BaseExtractor):
     def _extract_phones(self, text: str) -> list[str]:
         raw_matches = _PHONE_RE.findall(text)
         # Filter out things that look like years (4-digit numbers)
-        return [m.strip() for m in raw_matches if len(re.sub(r"\D", "", m)) >= 7]
+        phones = []
+        for match in raw_matches:
+            stripped = match.strip()
+            if _DATE_RANGE_RE.fullmatch(stripped):
+                continue
+            if len(re.sub(r"\D", "", stripped)) >= 7:
+                phones.append(stripped)
+        return phones
 
     def _extract_location(self, lines: list[str]) -> Optional[str]:
         """Check first 10 lines for location-like patterns."""
         location_re = re.compile(
             r"[A-Za-z.\s]+,\s*[A-Z]{2}(?:,\s*[A-Za-z.\s]+)?|"
             r"[A-Za-z.\s]+,\s*[A-Za-z.\s]+,\s*[A-Za-z.\s]+",
-            re.I
+            re.I,
         )
         for line in lines:
             m = location_re.search(line)
@@ -181,7 +218,11 @@ class ResumeExtractor(BaseExtractor):
 
         sections: dict[str, str] = {}
         for i, (pos, name) in enumerate(header_positions):
-            end = header_positions[i + 1][0] if i + 1 < len(header_positions) else len(text)
+            end = (
+                header_positions[i + 1][0]
+                if i + 1 < len(header_positions)
+                else len(text)
+            )
             sections[name] = text[pos:end]
         return sections
 
@@ -209,7 +250,7 @@ class ResumeExtractor(BaseExtractor):
         i = 0
         while i < len(parts):
             block = parts[i].strip()
-            if i + 2 < len(parts) and _DATE_RANGE_RE.search(parts[i] + parts[i+1]):
+            if i + 2 < len(parts) and _DATE_RANGE_RE.search(parts[i] + parts[i + 1]):
                 start_raw = parts[i + 1].strip() if i + 1 < len(parts) else ""
                 end_raw = parts[i + 2].strip() if i + 2 < len(parts) else ""
                 entry = self._parse_experience_block(block, start_raw, end_raw)
@@ -220,7 +261,9 @@ class ResumeExtractor(BaseExtractor):
                 i += 1
         return entries
 
-    def _parse_experience_block(self, block: str, start: str, end: str) -> Optional[dict[str, Any]]:
+    def _parse_experience_block(
+        self, block: str, start: str, end: str
+    ) -> Optional[dict[str, Any]]:
         lines = [l.strip() for l in block.splitlines() if l.strip()]
         if not lines:
             return None
@@ -239,10 +282,12 @@ class ResumeExtractor(BaseExtractor):
         if not section_text:
             return []
         entries = []
-        lines = [l.strip() for l in section_text.splitlines() if l.strip()][1:]  # skip header
+        lines = [l.strip() for l in section_text.splitlines() if l.strip()][
+            1:
+        ]  # skip header
         degree_re = re.compile(
             r"\b(B\.?S\.?|B\.?E\.?|B\.?Tech\.?|M\.?S\.?|M\.?Tech\.?|MBA|Ph\.?D\.?|Bachelor|Master|Doctor)\b",
-            re.I
+            re.I,
         )
         year_re = re.compile(r"\b(19|20)\d{2}\b")
         i = 0
@@ -252,18 +297,22 @@ class ResumeExtractor(BaseExtractor):
             if degree_m:
                 institution = lines[i - 1] if i > 0 else None
                 year_m = year_re.search(line)
-                entries.append({
-                    "institution": institution,
-                    "degree": degree_m.group(),
-                    "field": None,  # Would need more NLP to extract
-                    "end_year": year_m.group() if year_m else None,
-                })
+                entries.append(
+                    {
+                        "institution": institution,
+                        "degree": degree_m.group(),
+                        "field": None,  # Would need more NLP to extract
+                        "end_year": year_m.group() if year_m else None,
+                    }
+                )
             i += 1
         return entries
 
     def _extract_headline(self, summary_text: str, lines: list[str]) -> Optional[str]:
         if summary_text:
-            content_lines = [l.strip() for l in summary_text.splitlines() if l.strip()][1:3]
+            content_lines = [l.strip() for l in summary_text.splitlines() if l.strip()][
+                1:3
+            ]
             if content_lines:
                 return " ".join(content_lines)[:200]
         # Fall back: second non-empty line after name (often the title)

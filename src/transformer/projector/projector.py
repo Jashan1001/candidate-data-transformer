@@ -35,13 +35,11 @@ class Projector:
         output: dict[str, Any] = {}
 
         for field in config.fields:
-
             source_path = field.from_ or field.path
 
             value = deep_get(profile_dict, source_path)
 
             if value is None:
-
                 action = field.on_missing or config.on_missing
 
                 if action == "omit":
@@ -52,9 +50,7 @@ class Projector:
                     continue
 
                 if action == "error":
-                    raise ValueError(
-                        f"Missing required field '{source_path}'"
-                    )
+                    raise ValueError(f"Missing required field '{source_path}'")
 
             value = self._normalize(
                 value,
@@ -67,10 +63,7 @@ class Projector:
             output["overall_confidence"] = profile.overall_confidence
 
         if config.include_provenance:
-            output["provenance"] = [
-                p.model_dump()
-                for p in profile.provenance
-            ]
+            output["provenance"] = [p.model_dump() for p in profile.provenance]
 
         log.info(
             "Projection complete",

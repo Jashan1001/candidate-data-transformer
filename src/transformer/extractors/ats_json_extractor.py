@@ -19,7 +19,6 @@ from transformer.models.core import RawCandidate, SourceType
 
 
 class ATSJsonExtractor(BaseExtractor):
-
     def extract(
         self,
         source_input: str | Path | dict[str, Any],
@@ -43,7 +42,11 @@ class ATSJsonExtractor(BaseExtractor):
         c = data.get("candidate", {})
         rc = RawCandidate(source=SourceType.ATS_JSON)
         rc.raw_id = str(data.get("id", c.get("id", ""))) or None
-        rc.full_name = c.get("name") or f"{c.get('first_name','')} {c.get('last_name','')}".strip() or None
+        rc.full_name = (
+            c.get("name")
+            or f"{c.get('first_name', '')} {c.get('last_name', '')}".strip()
+            or None
+        )
         rc.emails = [e["value"] for e in c.get("email_addresses", []) if e.get("value")]
         rc.phones = [p["value"] for p in c.get("phone_numbers", []) if p.get("value")]
         address = c.get("addresses", [{}])[0] if c.get("addresses") else {}
@@ -52,7 +55,11 @@ class ATSJsonExtractor(BaseExtractor):
         rc.github_url = self._find_url(c.get("website_addresses", []), "github")
         apps = data.get("applications", [])
         if apps:
-            rc.headline = apps[0].get("jobs", [{}])[0].get("name") if apps[0].get("jobs") else None
+            rc.headline = (
+                apps[0].get("jobs", [{}])[0].get("name")
+                if apps[0].get("jobs")
+                else None
+            )
         rc.skills_raw = [t["name"] for t in c.get("tags", []) if t.get("name")]
         return rc
 
@@ -65,13 +72,14 @@ class ATSJsonExtractor(BaseExtractor):
         rc.full_name = data.get("name")
         emails = data.get("emails", [])
         rc.emails = [
-            e.get("value", e.get("email", ""))
-            if isinstance(e, dict)
-            else str(e)
+            e.get("value", e.get("email", "")) if isinstance(e, dict) else str(e)
             for e in emails
         ]
         rc.emails = [e for e in rc.emails if e]
-        rc.phones = [p.get("value", p) if isinstance(p, dict) else p for p in data.get("phones", [])]
+        rc.phones = [
+            p.get("value", p) if isinstance(p, dict) else p
+            for p in data.get("phones", [])
+        ]
         location = data.get("location") or data.get("origin") or ""
         rc.location_raw = location if isinstance(location, str) else None
         links = data.get("links", [])
@@ -84,13 +92,14 @@ class ATSJsonExtractor(BaseExtractor):
             else:
                 rc.portfolio_urls.append(url)
         app = data.get("applications", [{}])[0] if data.get("applications") else {}
-        rc.headline = app.get("posting", {}).get("text") if isinstance(app.get("posting"), dict) else None
+        rc.headline = (
+            app.get("posting", {}).get("text")
+            if isinstance(app.get("posting"), dict)
+            else None
+        )
         tags = data.get("tags", [])
         rc.skills_raw = [
-            t.get("name", "")
-            if isinstance(t, dict)
-            else str(t)
-            for t in tags
+            t.get("name", "") if isinstance(t, dict) else str(t) for t in tags
         ]
         rc.skills_raw = [s for s in rc.skills_raw if s]
         yoe = data.get("years_experience") or data.get("yearsExperience")
@@ -108,27 +117,46 @@ class ATSJsonExtractor(BaseExtractor):
         rc = RawCandidate(source=SourceType.ATS_JSON)
         rc.raw_id = str(data.get("id", data.get("candidate_id", ""))) or None
         rc.full_name = (
-            data.get("full_name") or data.get("name")
-            or f"{data.get('first_name','').strip()} {data.get('last_name','').strip()}".strip()
+            data.get("full_name")
+            or data.get("name")
+            or f"{data.get('first_name', '').strip()} {data.get('last_name', '').strip()}".strip()
             or None
         )
         # Emails — could be string or list
-        email_val = data.get("email") or data.get("email_address") or data.get("emails", [])
+        email_val = (
+            data.get("email") or data.get("email_address") or data.get("emails", [])
+        )
         rc.emails = self._coerce_list(email_val)
         # Phones
-        phone_val = data.get("phone") or data.get("phone_number") or data.get("phones", [])
+        phone_val = (
+            data.get("phone") or data.get("phone_number") or data.get("phones", [])
+        )
         rc.phones = self._coerce_list(phone_val)
-        rc.location_raw = data.get("location") or data.get("address") or data.get("city")
+        rc.location_raw = (
+            data.get("location") or data.get("address") or data.get("city")
+        )
         rc.linkedin_url = data.get("linkedin") or data.get("linkedin_url")
         rc.github_url = data.get("github") or data.get("github_url")
-        rc.headline = data.get("headline") or data.get("title") or data.get("current_title")
-        yoe = data.get("years_experience") or data.get("experience_years") or data.get("yoe")
+        rc.headline = (
+            data.get("headline") or data.get("title") or data.get("current_title")
+        )
+        yoe = (
+            data.get("years_experience")
+            or data.get("experience_years")
+            or data.get("yoe")
+        )
         if yoe is not None and str(yoe).strip():
             try:
                 rc.years_experience = float(yoe)
             except (ValueError, TypeError):
                 pass
-        skills = data.get("skills", [])
+        skills = (
+            data.get("skills")
+            or data.get("tags")
+            or data.get("technologies")
+            or data.get("expertise")
+            or []
+        )
         rc.skills_raw = self._coerce_list(skills)
         return rc
 
@@ -173,7 +201,12 @@ class ATSJsonExtractor(BaseExtractor):
             result = []
             for item in val:
                 if isinstance(item, dict):
-                    value = item.get("value") or item.get("email") or item.get("phone")
+                    value = (
+                        item.get("value")
+                        or item.get("name")
+                        or item.get("email")
+                        or item.get("phone")
+                    )
                     if value:
                         result.append(str(value).strip())
                 elif item:

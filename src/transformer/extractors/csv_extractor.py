@@ -20,18 +20,31 @@ from transformer.models.core import RawCandidate, SourceType
 
 # Column name aliases → canonical field
 _COL_MAP = {
-    "name": "full_name", "full_name": "full_name",
-    "email": "email", "email_address": "email",
-    "phone": "phone", "phone_number": "phone", "mobile": "phone",
-    "current_company": "company", "company": "company", "employer": "company",
-    "title": "title", "job_title": "title", "role": "title",
-    "location": "location", "city": "location",
-    "years_experience": "years_experience", "experience_years": "years_experience",
+    "name": "full_name",
+    "full_name": "full_name",
+    "email": "email",
+    "email_address": "email",
+    "phone": "phone",
+    "phone_number": "phone",
+    "mobile": "phone",
+    "current_company": "company",
+    "company": "company",
+    "employer": "company",
+    "title": "title",
+    "job_title": "title",
+    "role": "title",
+    "location": "location",
+    "city": "location",
+    "years_experience": "years_experience",
+    "experience_years": "years_experience",
     "yoe": "years_experience",
     "skills": "skills",
-    "linkedin": "linkedin_url", "linkedin_url": "linkedin_url",
-    "github": "github_url", "github_url": "github_url",
-    "id": "id", "candidate_id": "id",
+    "linkedin": "linkedin_url",
+    "linkedin_url": "linkedin_url",
+    "github": "github_url",
+    "github_url": "github_url",
+    "id": "id",
+    "candidate_id": "id",
     "headline": "headline",
 }
 
@@ -56,7 +69,9 @@ class RecruiterCSVExtractor(BaseExtractor):
         rows = self._read_rows(source_input)
         return [self._row_to_raw(r) for r in rows]
 
-    def _read_rows(self, source_input: str | Path | io.StringIO) -> list[dict[str, Any]]:
+    def _read_rows(
+        self, source_input: str | Path | io.StringIO
+    ) -> list[dict[str, Any]]:
         if isinstance(source_input, (str, Path)):
             path = Path(source_input)
             if path.exists():
@@ -101,7 +116,9 @@ class RecruiterCSVExtractor(BaseExtractor):
                 pass
         skills_raw = mapped.get("skills", "")
         if skills_raw:
-            rc.skills_raw = [s.strip() for s in re.split(r"[,;|]", skills_raw) if s.strip()]
+            rc.skills_raw = [
+                s.strip() for s in re.split(r"[,;|]", skills_raw) if s.strip()
+            ]
         return rc
 
     def _map_columns(self, row: dict[str, Any]) -> dict[str, Any]:

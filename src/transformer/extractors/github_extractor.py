@@ -1,4 +1,3 @@
-
 """
 GitHub profile extractor — production quality.
 
@@ -30,8 +29,8 @@ from transformer.utils.logger import get_logger
 log = get_logger(__name__)
 
 _API_BASE = "https://api.github.com"
-_MAX_REPOS = 100        # fetch at most this many repos
-_TIMEOUT   = 15         # seconds per request
+_MAX_REPOS = 100  # fetch at most this many repos
+_TIMEOUT = 15  # seconds per request
 
 
 class GitHubExtractor(BaseExtractor):
@@ -66,11 +65,14 @@ class GitHubExtractor(BaseExtractor):
         rc = self._parse_profile(profile)
 
         # Enrich with repository languages + topics
-        repos = self._get(f"/users/{username}/repos", params={
-            "per_page": _MAX_REPOS,
-            "sort": "pushed",
-            "type": "owner",
-        })
+        repos = self._get(
+            f"/users/{username}/repos",
+            params={
+                "per_page": _MAX_REPOS,
+                "sort": "pushed",
+                "type": "owner",
+            },
+        )
         if repos:
             languages, topics = self._aggregate_repos(repos)
             rc.skills_raw = sorted(languages | topics)
@@ -91,10 +93,10 @@ class GitHubExtractor(BaseExtractor):
     def _parse_profile(self, data: dict[str, Any]) -> RawCandidate:
         rc = RawCandidate(source=SourceType.GITHUB)
 
-        rc.raw_id     = str(data.get("id", "")) or None
-        rc.full_name  = data.get("name") or None
+        rc.raw_id = str(data.get("id", "")) or None
+        rc.full_name = data.get("name") or None
         rc.github_url = data.get("html_url") or None
-        rc.headline   = data.get("bio") or None
+        rc.headline = data.get("bio") or None
         rc.location_raw = data.get("location") or None
 
         # GitHub may expose a public email
@@ -118,8 +120,8 @@ class GitHubExtractor(BaseExtractor):
         if company:
             rc.extra["company"] = company
 
-        rc.extra["followers"]  = data.get("followers", 0)
-        rc.extra["following"]  = data.get("following", 0)
+        rc.extra["followers"] = data.get("followers", 0)
+        rc.extra["following"] = data.get("following", 0)
 
         return rc
 
@@ -141,7 +143,7 @@ class GitHubExtractor(BaseExtractor):
         topics: set[str] = set()
 
         for repo in repos:
-            if repo.get("fork"):       # ignore forked repos
+            if repo.get("fork"):  # ignore forked repos
                 continue
             lang = repo.get("language")
             if lang:
@@ -187,7 +189,7 @@ class GitHubExtractor(BaseExtractor):
             reset_ts = int(resp.headers.get("X-RateLimit-Reset", 0))
             wait = max(reset_ts - int(time.time()), 0) + 1
             log.warning("GitHub rate limit hit — waiting", seconds=wait)
-            time.sleep(min(wait, 60))   # cap at 60 s in pipelines
+            time.sleep(min(wait, 60))  # cap at 60 s in pipelines
 
         if resp.status_code == 404:
             log.warning("GitHub resource not found", path=path)
