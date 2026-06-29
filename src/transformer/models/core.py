@@ -20,7 +20,16 @@ from pydantic import BaseModel, Field, PrivateAttr
 
 
 class SourceType(str, Enum):
-    """All supported ingestion sources. Ordered by reliability (highest first)."""
+    """All supported ingestion sources. Ordered by reliability (highest first).
+
+    NOTE on RECRUITER_NOTES: modeled here deliberately as a forward
+    extension point (it has a priority slot and a base confidence
+    weight below), but no extractor implements it yet. Free-text
+    recruiter notes were scoped out under time pressure in favor of
+    fully implementing CSV, ATS JSON, GitHub, and resume parsing --
+    adding a notes extractor later only requires a new BaseExtractor
+    subclass; no other layer needs to change.
+    """
 
     ATS_JSON = "ats_json"  # Structured, employer-entered: highest trust
     RECRUITER_CSV = "recruiter_csv"  # Structured, recruiter-entered: high trust
@@ -107,13 +116,24 @@ class FieldObservation(BaseModel):
 
 
 class Provenance(BaseModel):
-    """Lineage record attached to each field in the canonical profile."""
+    """Lineage record attached to each field in the canonical profile.
+
+    `source`/`method`/`confidence` describe the WINNING observation for
+    this field. `observed_sources` additionally records every distinct
+    source that reported *any* value for this field, even ones that
+    lost the conflict-resolution tie-break. This is what lets the
+    confidence engine's "agreement between multiple sources" signal
+    actually mean something -- without it, a field that 3 sources
+    agreed on and a field only 1 source reported would be
+    indistinguishable downstream, since only the winner is ever kept.
+    """
 
     field: str
     source: SourceType
     method: str
     confidence: float = Field(ge=0.0, le=1.0)
     raw_value: Optional[Any] = None  # original before normalization
+    observed_sources: list[str] = Field(default_factory=list)
 
 
 class LocationCanonical(BaseModel):
