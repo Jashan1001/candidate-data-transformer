@@ -315,3 +315,653 @@ No consumer receives this model directly.
 The projector transforms the canonical profile into the runtime schema defined by the configuration.
 
 Different consumers can therefore receive completely different JSON structures without modifying the merge logic.
+
+---
+
+# 🧠 Merge Strategy & Conflict Resolution
+
+Real-world candidate data rarely arrives in a clean, consistent form.
+
+Different sources often provide:
+
+- Conflicting names
+- Different phone number formats
+- Duplicate email addresses
+- Incomplete skill lists
+- Missing experience
+- Different confidence levels
+
+The merge engine resolves these inconsistencies using deterministic, field-specific strategies instead of simple overwrite semantics.
+
+---
+
+# Scalar Fields
+
+Scalar values represent a single canonical value.
+
+Examples include:
+
+- Full Name
+- Headline
+- Years of Experience
+- Location
+
+The merge engine evaluates all observations for a field and selects the most trustworthy value using the following priority:
+
+1. Source priority
+2. Source confidence
+3. Extraction confidence
+4. Conflict penalty (if competing values disagree)
+
+For example:
+
+```text
+ATS
+Name = "Jashan Singh"
+
+Resume
+Name = "Jashan S."
+
+GitHub
+Name = "Jashan Singh"
+
+↓
+
+Canonical Name = "Jashan Singh"
+```
+
+This approach avoids arbitrary overwrites while preferring the most reliable information.
+
+---
+
+# List Fields
+
+Fields containing multiple independent values are merged using union-based strategies.
+
+Examples include:
+
+- Email addresses
+- Phone numbers
+- Portfolio links
+
+Instead of selecting a single winner, values are:
+
+- Normalized
+- Deduplicated
+- Combined into a single canonical list
+
+Example:
+
+```text
+CSV
+john@gmail.com
+
+ATS
+John@gmail.com
+
+Resume
+john@gmail.com
+
+↓
+
+john@gmail.com
+```
+
+Duplicate values are automatically removed after normalization.
+
+---
+
+# Skills
+
+Skills require a dedicated merge strategy because multiple sources may report different aliases.
+
+Example:
+
+```text
+Resume
+Python3
+
+GitHub
+python
+
+CSV
+PYTHON
+
+↓
+
+python
+```
+
+Each merged skill records:
+
+- Canonical name
+- Confidence score
+- Contributing sources
+
+allowing downstream consumers to understand both the resolved value and its origin.
+
+---
+
+# Experience & Education
+
+Structured entities such as experience and education are merged independently.
+
+Duplicate records are detected using identifying attributes and consolidated into a single canonical representation while preserving available metadata.
+
+This avoids repeated entries when multiple sources describe the same employment or academic record.
+
+---
+
+# Provenance Tracking
+
+Every merged field records exactly how it was produced.
+
+Each provenance record contains:
+
+- Winning source
+- Extraction method
+- Confidence
+- Original raw value
+- All contributing sources
+
+Example:
+
+```text
+Field:
+Email
+
+Winner:
+ATS JSON
+
+Observed Sources:
+ATS JSON
+Resume
+GitHub
+
+Confidence:
+0.95
+```
+
+This makes every merge decision fully explainable and auditable.
+
+---
+
+# Confidence Scoring
+
+Every candidate profile receives an overall confidence score between **0.0** and **1.0**.
+
+The score combines four independent signals:
+
+| Signal | Description |
+|---------|-------------|
+| Source Reliability | Trust assigned to each source type |
+| Extraction Confidence | Confidence assigned during extraction and normalization |
+| Multi-Source Agreement | Additional confidence when multiple sources agree |
+| Profile Completeness | Fraction of important fields successfully populated |
+
+The confidence engine never modifies candidate data.
+
+Its only responsibility is estimating how trustworthy the final canonical profile is.
+
+---
+
+# Why This Design?
+
+Instead of treating candidate information as a collection of documents, the system treats it as a collection of **field-level observations**.
+
+Each observation carries:
+
+- value
+- source
+- confidence
+- extraction method
+
+The merge engine reasons about observations rather than entire records, enabling deterministic conflict resolution, explainable provenance, and confidence-aware merging.
+
+---
+
+# ⚙️ Installation & Quick Start
+
+## Prerequisites
+
+- Python **3.12+**
+- Git
+
+---
+
+## Clone the Repository
+
+```bash
+git clone https://github.com/Jashan1001/candidate-data-transformer.git
+
+cd candidate-data-transformer
+```
+
+---
+
+## Create a Virtual Environment
+
+### Windows
+
+```bash
+python -m venv .venv
+
+.venv\Scripts\activate
+```
+
+### Linux / macOS
+
+```bash
+python3 -m venv .venv
+
+source .venv/bin/activate
+```
+
+---
+
+## Install Dependencies
+
+```bash
+pip install -e .
+```
+
+or
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## Verify Installation
+
+```bash
+candidate-transformer --help
+```
+
+Expected output:
+
+```text
+usage: candidate-transformer [-h]
+                             [--csv CSV]
+                             [--ats ATS]
+                             [--github GITHUB]
+                             [--resume RESUME]
+                             --config CONFIG
+                             --output OUTPUT
+                             [--debug]
+```
+
+---
+
+# 🚀 Running the Pipeline
+
+The transformer accepts any combination of supported sources.
+
+Example:
+
+```bash
+python -m transformer.cli \
+    --csv input/recruiter.csv \
+    --ats input/ats/sample.json \
+    --resume input/resume.pdf \
+    --github octocat \
+    --config input/configs/default.json \
+    --output output/result.json \
+    --debug
+```
+
+---
+
+# Example Pipeline Execution
+
+```text
+Loading configuration
+
+Extracting recruiter CSV
+
+Extracting ATS JSON
+
+Extracting Resume
+
+Extracting GitHub
+
+Merging sources
+
+Computing confidence
+
+Validating canonical profile
+
+Projecting output
+
+Validating projected output
+
+Pipeline complete
+```
+
+---
+
+# Example Output
+
+```json
+{
+  "full_name": "Jashan Singh",
+  "emails": [
+    "jashan@gmail.com"
+  ],
+  "phones": [
+    "+919876543210"
+  ],
+  "years_experience": 3.0,
+  "overall_confidence": 0.91
+}
+```
+
+---
+
+# 📁 Project Structure
+
+```text
+candidate-data-transformer/
+
+├── input/
+│   ├── ats/
+│   ├── configs/
+│   ├── recruiter.csv
+│   └── resume.pdf
+│
+├── output/
+│   └── result.json
+│
+├── src/
+│   └── transformer/
+│       ├── confidence/
+│       ├── extractors/
+│       ├── merger/
+│       ├── models/
+│       ├── normalizers/
+│       ├── projector/
+│       ├── utils/
+│       ├── validator/
+│       ├── cli.py
+│       └── main.py
+│
+├── tests/
+│
+├── pyproject.toml
+├── README.md
+└── LICENSE
+```
+
+---
+
+# 🧪 Running Tests
+
+Execute the complete test suite:
+
+```bash
+pytest
+```
+
+Run with verbose output:
+
+```bash
+pytest -v
+```
+
+Generate a coverage report (optional):
+
+```bash
+pytest --cov=src/transformer
+```
+
+---
+
+# 🧹 Code Quality
+
+Run Ruff linter:
+
+```bash
+ruff check .
+```
+
+Automatically fix simple issues:
+
+```bash
+ruff check . --fix
+```
+
+Format the project:
+
+```bash
+ruff format .
+```
+
+A clean repository should satisfy:
+
+```bash
+ruff check .
+
+pytest
+```
+
+without warnings or failures.
+
+---
+
+# ⚙️ Configuration System
+
+The output of the transformer is entirely controlled through a runtime JSON configuration.
+
+Instead of modifying application code, users can customize the generated JSON by editing a configuration file.
+
+The configuration controls:
+
+- Field selection
+- Field renaming
+- Nested output paths
+- Missing field behaviour
+- Runtime normalization
+- Required field validation
+- Confidence inclusion
+- Provenance inclusion
+
+---
+
+## Example Configuration
+
+```json
+{
+  "fields": [
+    {
+      "path": "candidate.name",
+      "from": "full_name"
+    },
+    {
+      "path": "candidate.email",
+      "from": "emails[0]"
+    },
+    {
+      "path": "candidate.phone",
+      "from": "phones[0]",
+      "normalize": "E164"
+    },
+    {
+      "path": "candidate.skills",
+      "from": "skills"
+    }
+  ],
+  "include_confidence": true,
+  "include_provenance": true
+}
+```
+
+---
+
+## Field Mapping
+
+Each field describes how data should be projected from the canonical profile.
+
+| Property | Description |
+|-----------|-------------|
+| `path` | Destination path in the output JSON |
+| `from` | Source field in the canonical profile |
+| `required` | Marks the field as mandatory |
+| `normalize` | Applies runtime normalization |
+| `on_missing` | Controls behaviour when data is unavailable |
+
+---
+
+## Runtime Field Renaming
+
+Fields can be renamed without modifying application code.
+
+Example:
+
+```json
+{
+    "path": "candidate.primary_email",
+    "from": "emails[0]"
+}
+```
+
+Output:
+
+```json
+{
+    "candidate": {
+        "primary_email": "jashan@gmail.com"
+    }
+}
+```
+
+---
+
+## Nested Output
+
+Nested JSON structures are created automatically.
+
+Configuration:
+
+```json
+{
+    "path": "contact.address.city",
+    "from": "location.city"
+}
+```
+
+Output:
+
+```json
+{
+    "contact": {
+        "address": {
+            "city": "Bangalore"
+        }
+    }
+}
+```
+
+---
+
+## Missing Field Behaviour
+
+The projector supports three strategies for handling missing values.
+
+### Omit
+
+```json
+"on_missing": "omit"
+```
+
+The field is not included in the output.
+
+---
+
+### Null
+
+```json
+"on_missing": "null"
+```
+
+The field is included with a null value.
+
+---
+
+### Error
+
+```json
+"on_missing": "error"
+```
+
+Projection fails if the field cannot be resolved.
+
+---
+
+## Runtime Normalization
+
+The projector can normalize values during projection, even if the canonical profile already contains normalized data.
+
+Supported strategies include:
+
+| Strategy | Description |
+|----------|-------------|
+| `E164` | Phone numbers |
+| `canonical` | Skill names |
+| `ISO3166` | Country codes |
+
+This guarantees that the output contract is honoured regardless of how upstream components produced the canonical profile.
+
+---
+
+## Confidence & Provenance
+
+The output configuration can optionally include additional metadata.
+
+### Confidence
+
+```json
+"include_confidence": true
+```
+
+Example:
+
+```json
+{
+    "overall_confidence": 0.91
+}
+```
+
+---
+
+### Provenance
+
+```json
+"include_provenance": true
+```
+
+Example:
+
+```json
+{
+    "provenance": [
+        {
+            "field": "full_name",
+            "source": "ats_json",
+            "confidence": 0.95
+        }
+    ]
+}
+```
+
+---
+
+## Why Configuration-Driven Projection?
+
+Separating the internal canonical model from the external output schema provides several advantages:
+
+- No code changes when output requirements change
+- Different consumers can receive different JSON structures
+- Strong separation between business logic and presentation
+- Easy integration with downstream systems
+- Improved maintainability and extensibility
