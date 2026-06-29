@@ -11,6 +11,9 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from transformer.models.core import RawCandidate
+from transformer.utils.logger import get_logger
+
+log = get_logger(__name__)
 
 
 class BaseExtractor(ABC):
@@ -53,7 +56,11 @@ class BaseExtractor(ABC):
         try:
             return self.extract(source_input)
         except Exception as exc:
-            print(f"[WARN] {self.__class__.__name__} failed: {exc}")
+            log.warning(
+                "Extractor failed, degrading to empty source",
+                extractor=self.__class__.__name__,
+                error=str(exc),
+            )
             return self._empty()
 
     @abstractmethod
