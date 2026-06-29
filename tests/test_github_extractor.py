@@ -85,8 +85,6 @@ def test_topics_aggregation_ignores_forks():
 
 from unittest.mock import Mock
 
-from transformer.extractors.github_extractor import GitHubExtractor
-
 
 def test_extract_username_from_url():
     assert (

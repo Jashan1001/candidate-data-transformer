@@ -1,6 +1,5 @@
 from transformer.models.core import (
     CanonicalProfile,
-    Provenance,
     SkillCanonical,
     SourceType,
 )

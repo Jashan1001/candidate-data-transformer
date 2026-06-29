@@ -7,14 +7,20 @@ def test_greenhouse_candidate():
         "id": 1,
         "candidate": {
             "name": "Jashanpreet Kaur",
-            "email_addresses": [{"value": "jashanpreet@gmail.com"}],
-            "phone_numbers": [{"value": "+919876543210"}],
-            "location": {"name": "Bangalore"},
+            "email_addresses": [
+                {"value": "jashanpreet@gmail.com"}
+            ],
+            "phone_numbers": [
+                {"value": "+919876543210"}
+            ],
+            "location": {
+                "name": "Bangalore"
+            },
             "tags": [
                 {"name": "Python"},
                 {"name": "Docker"},
             ],
-        },
+        }
     }
 
     extractor = ATSJsonExtractor()
@@ -33,9 +39,16 @@ def test_lever_candidate():
     data = {
         "id": 5,
         "name": "Jashanpreet Kaur",
-        "emails": [{"value": "jashanpreet@gmail.com"}],
-        "phones": [{"value": "+919876543210"}],
-        "tags": ["Python", "Redis"],
+        "emails": [
+            {"value": "jashanpreet@gmail.com"}
+        ],
+        "phones": [
+            {"value": "+919876543210"}
+        ],
+        "tags": [
+            "Python",
+            "Redis"
+        ]
     }
 
     extractor = ATSJsonExtractor()
@@ -80,7 +93,11 @@ def test_missing_fields():
 
 
 def test_email_dict():
-    data = {"emails": [{"email": "abc@gmail.com"}]}
+    data = {
+        "emails": [
+            {"email": "abc@gmail.com"}
+        ]
+    }
 
     extractor = ATSJsonExtractor()
 
@@ -90,7 +107,11 @@ def test_email_dict():
 
 
 def test_phone_dict():
-    data = {"phones": [{"phone": "+919999999999"}]}
+    data = {
+        "phones": [
+            {"phone": "+919999999999"}
+        ]
+    }
 
     extractor = ATSJsonExtractor()
 
@@ -118,7 +139,9 @@ def test_tags_to_skills():
 
 
 def test_invalid_experience():
-    data = {"years_experience": "abc"}
+    data = {
+        "years_experience": "abc"
+    }
 
     extractor = ATSJsonExtractor()
 

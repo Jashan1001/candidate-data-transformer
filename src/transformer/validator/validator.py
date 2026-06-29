@@ -12,7 +12,6 @@ errors and warnings so the pipeline can decide whether to continue.
 from __future__ import annotations
 
 import re
-from typing import Any
 
 from transformer.models.config import OutputConfig
 from transformer.models.core import CanonicalProfile

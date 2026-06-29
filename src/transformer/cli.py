@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 
 from transformer.main import CandidateTransformer
 from transformer.models.config import OutputConfig

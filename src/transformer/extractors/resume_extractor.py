@@ -264,7 +264,11 @@ class ResumeExtractor(BaseExtractor):
     def _parse_experience_block(
         self, block: str, start: str, end: str
     ) -> Optional[dict[str, Any]]:
-        lines = [l.strip() for l in block.splitlines() if l.strip()]
+        lines = [
+    line.strip()
+    for line in block.splitlines()
+    if line.strip()
+]
         if not lines:
             return None
         # Heuristic: title is usually the last meaningful line before the date

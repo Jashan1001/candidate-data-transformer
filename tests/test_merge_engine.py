@@ -1,5 +1,3 @@
-import pytest
-
 from transformer.merger.merge_engine import MergeEngine
 from transformer.models.core import RawCandidate, SourceType
 

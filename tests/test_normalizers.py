@@ -1,6 +1,3 @@
-import pytest
-
-from transformer.models.core import LocationCanonical
 from transformer.normalizers import (
     normalize_phone,
     normalize_phones,
