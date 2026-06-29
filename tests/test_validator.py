@@ -95,3 +95,60 @@ def test_empty_profile():
     assert result.valid
     assert "Missing full_name." in result.warnings
     assert "Missing email." in result.warnings
+
+
+def test_validate_output_required_field_missing_is_an_error():
+    from transformer.models.config import FieldConfig, OutputConfig
+
+    output = {"full_name": None}
+    config = OutputConfig(
+        fields=[FieldConfig(path="full_name", required=True)],
+    )
+
+    result = validator.validate_output(output, config)
+
+    assert not result.valid
+    assert any("full_name" in error for error in result.errors)
+
+
+def test_validate_output_type_mismatch_is_an_error():
+    from transformer.models.config import FieldConfig, OutputConfig
+
+    output = {"years_experience": "three"}  # should be a number
+    config = OutputConfig(
+        fields=[FieldConfig(path="years_experience", type="number")],
+    )
+
+    result = validator.validate_output(output, config)
+
+    assert not result.valid
+    assert any("years_experience" in error for error in result.errors)
+
+
+def test_validate_output_string_array_type_check():
+    from transformer.models.config import FieldConfig, OutputConfig
+
+    good = {"skills": ["python", "docker"]}
+    bad = {"skills": [{"name": "python"}]}
+    config = OutputConfig(
+        fields=[FieldConfig(path="skills", type="string[]")],
+    )
+
+    assert validator.validate_output(good, config).valid
+    assert not validator.validate_output(bad, config).valid
+
+
+def test_validate_output_passes_when_everything_matches():
+    from transformer.models.config import FieldConfig, OutputConfig
+
+    output = {"full_name": "Jordan Reyes", "years_experience": 3}
+    config = OutputConfig(
+        fields=[
+            FieldConfig(path="full_name", type="string", required=True),
+            FieldConfig(path="years_experience", type="number"),
+        ],
+    )
+
+    result = validator.validate_output(output, config)
+    assert result.valid
+    assert result.errors == []

@@ -12,6 +12,7 @@ errors and warnings so the pipeline can decide whether to continue.
 from __future__ import annotations
 
 import re
+from typing import Any
 
 from transformer.models.config import OutputConfig
 from transformer.models.core import CanonicalProfile
@@ -102,6 +103,70 @@ class Validator:
                     result.add_warning(f"Field '{field.from_}' does not exist.")
 
         return result
+
+    def validate_output(
+        self,
+        output: dict,
+        config: OutputConfig,
+    ) -> ValidationResult:
+        """
+        Validate the FINAL projected JSON against what the config actually
+        asked for. This runs after Projector.project(), not before -- the
+        canonical profile can be perfectly valid while the *projection* of
+        it is still wrong (a bad rename path, a type mismatch the config
+        declared, or a required field that on_missing quietly nulled out).
+
+        Two things checked per field:
+        1. required: True must mean the field is actually present and
+           non-null in the output, regardless of what on_missing said to
+           do at projection time. (Previously `required` was accepted by
+           the config schema but never enforced anywhere.)
+        2. type: if declared, the projected value's Python type must
+           match what was promised (string, string[], number, boolean,
+           object), so a config can't silently claim one shape and
+           deliver another.
+        """
+        result = ValidationResult()
+
+        for field in config.fields:
+            value = deep_get(output, field.path)
+
+            if field.required and value is None:
+                result.add_error(
+                    f"Required field '{field.path}' is missing from the output."
+                )
+                continue
+
+            if value is None:
+                continue
+
+            if field.type and not self._matches_declared_type(value, field.type):
+                result.add_error(
+                    f"Field '{field.path}' does not match declared type "
+                    f"'{field.type}' (got {type(value).__name__})."
+                )
+
+        log.info(
+            "Output validation complete",
+            valid=result.valid,
+            errors=len(result.errors),
+        )
+
+        return result
+
+    @staticmethod
+    def _matches_declared_type(value: Any, declared_type: str) -> bool:
+        if declared_type == "string":
+            return isinstance(value, str)
+        if declared_type == "string[]":
+            return isinstance(value, list) and all(isinstance(v, str) for v in value)
+        if declared_type == "number":
+            return isinstance(value, (int, float)) and not isinstance(value, bool)
+        if declared_type == "boolean":
+            return isinstance(value, bool)
+        if declared_type == "object":
+            return isinstance(value, dict)
+        return True  # unrecognized declared type -- don't fail on it
 
     # ---------------------------------------------------------
     # Internal validation
