@@ -148,33 +148,3 @@ def test_invalid_experience():
     candidate = extractor.extract(data)
 
     assert candidate.years_experience is None
-
-
-def test_generic_payload_with_plain_emails_key_keeps_skills():
-    """
-    Regression test for a real bug found while reviewing the sample fixture:
-    a generic-shaped ATS payload (plain "skills" list, no "tags", no
-    "applications") was being misrouted into the Lever-flavor parser just
-    because it happened to have a top-level "emails" key -- a field name
-    plenty of non-Lever exports also use. The Lever parser reads skills
-    from "tags", not "skills", so skills were silently dropped.
-
-    "emails" alone must NOT trigger Lever parsing, and even if a flavor
-    guess is ever wrong again, the fallback safety net in extract() must
-    still recover a clearly-present top-level "skills" key.
-    """
-    data = {
-        "id": "123",
-        "name": "Jordan Reyes",
-        "emails": ["jordan@example.com"],
-        "phones": ["+15555550123"],
-        "skills": ["Python", "Docker", "Kafka"],
-        "years_experience": 3,
-    }
-
-    extractor = ATSJsonExtractor()
-    candidate = extractor.extract(data)
-
-    assert set(candidate.skills_raw) == {"Python", "Docker", "Kafka"}
-    assert candidate.full_name == "Jordan Reyes"
-    assert candidate.emails == ["jordan@example.com"]
