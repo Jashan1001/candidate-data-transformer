@@ -45,7 +45,7 @@ class ConfidenceEngine:
 
         overall = self._overall_score(field_scores, completeness)
 
-        profile.overall_confidence = round(overall, 3)
+        profile.overall_confidence = max(0.0, min(1.0, round(overall, 3)))
 
         return profile
 

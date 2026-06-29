@@ -22,6 +22,7 @@ from transformer.extractors.ats_json_extractor import ATSJsonExtractor
 from transformer.extractors.csv_extractor import RecruiterCSVExtractor
 from transformer.extractors.github_extractor import GitHubExtractor
 
+from transformer.confidence.confidence_engine import ConfidenceEngine
 from transformer.merger.merge_engine import MergeEngine
 from transformer.projector.projector import Projector
 from transformer.validator.validator import Validator
@@ -57,6 +58,7 @@ class CandidateTransformer:
         self.github_extractor = GitHubExtractor()
 
         self.merge_engine = MergeEngine()
+        self.confidence_engine = ConfidenceEngine()
         self.validator = Validator()
         self.projector = Projector()
 
@@ -103,6 +105,13 @@ class CandidateTransformer:
         # -------------------------------
 
         profile = self.merge_engine.merge(raw_candidates)
+
+        # -------------------------------
+        # Confidence
+        # -------------------------------
+
+        log.info("Computing confidence")
+        profile = self.confidence_engine.compute(profile)
 
         # -------------------------------
         # Validation

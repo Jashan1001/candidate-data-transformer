@@ -1,0 +1,21 @@
+{
+    "fields":[
+        {
+            "path":"full_name"
+        },
+        {
+            "path":"emails"
+        },
+        {
+            "path":"phones"
+        },
+        {
+            "path":"skills"
+        },
+        {
+            "path":"years_experience"
+        }
+    ],
+    "include_confidence":true,
+    "include_provenance":true
+}
