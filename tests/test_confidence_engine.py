@@ -118,3 +118,51 @@ def test_empty_profile():
     ConfidenceEngine().compute(profile)
 
     assert profile.overall_confidence == 0
+
+
+def test_agreement_bonus_uses_observed_sources_not_record_count():
+    """
+    Regression test: the real MergeEngine always collapses each field
+    down to exactly ONE winning Provenance record (conflict penalty
+    already applied there), never multiple records for the same field.
+    The previous agreement-bonus implementation checked `len(records)`,
+    which could never exceed 1 for a real profile -- so the "multiple
+    sources agree" signal was silently dead in practice, even though
+    existing tests passed (because they manually constructed an
+    unrealistic two-records-for-one-field shape that real merge output
+    never produces).
+
+    This test uses the shape merge_engine.py actually produces: one
+    Provenance record, with `observed_sources` carrying every source
+    that contributed.
+    """
+    engine = ConfidenceEngine()
+
+    single_source = CanonicalProfile(candidate_id="cand-single", full_name="Jashan")
+    single_source.provenance = [
+        Provenance(
+            field="full_name",
+            source=SourceType.ATS_JSON,
+            method="extracted",
+            confidence=0.95,
+            raw_value="Jashan",
+            observed_sources=["ats_json"],
+        )
+    ]
+
+    three_sources_agree = CanonicalProfile(candidate_id="cand-multi", full_name="Jashan")
+    three_sources_agree.provenance = [
+        Provenance(
+            field="full_name",
+            source=SourceType.ATS_JSON,
+            method="extracted",
+            confidence=0.95,
+            raw_value="Jashan",
+            observed_sources=["ats_json", "recruiter_csv", "github"],
+        )
+    ]
+
+    engine.compute(single_source)
+    engine.compute(three_sources_agree)
+
+    assert three_sources_agree.overall_confidence > single_source.overall_confidence

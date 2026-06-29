@@ -99,16 +99,28 @@ class ConfidenceEngine:
         self,
         records: list[Provenance],
     ) -> float:
+        """
+        Reward fields multiple independent sources agreed on.
 
-        if len(records) <= 1:
-            return 0.0
+        NOTE: this used to check `len(records) <= 1` and bail out, on the
+        assumption that a field with multiple contributing sources would
+        have multiple Provenance records. It never does -- MergeEngine
+        always collapses each field down to exactly one winning
+        Provenance entry, conflict penalty already applied there. So
+        this signal was dead code: it could never see more than one
+        record per field. Fixed to read `observed_sources`, which
+        MergeEngine now populates with every distinct source that
+        reported a value for the field, not just the winner.
+        """
+        sources: set[str] = set()
+        for r in records:
+            sources.add(r.source.value)
+            sources.update(r.observed_sources)
 
-        unique_sources = {r.source for r in records}
-
-        if len(unique_sources) >= 3:
+        if len(sources) >= 3:
             return 0.10
 
-        if len(unique_sources) == 2:
+        if len(sources) == 2:
             return 0.05
 
         return 0.0
