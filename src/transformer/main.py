@@ -3,13 +3,17 @@ Main pipeline orchestrator.
 
 Coordinates the complete transformation pipeline:
 
-    Extract
+    Extract (per source)
         ↓
-    Merge
+    Merge (includes per-field normalization)
         ↓
-    Validate
+    Confidence
         ↓
-    Project
+    Validate (canonical profile -- pre-projection sanity checks)
+        ↓
+    Project (apply runtime OutputConfig: select/rename/normalize fields)
+        ↓
+    Validate (projected output -- matches what the config actually asked for)
 
 This module intentionally contains almost no business logic.
 """
@@ -21,6 +25,7 @@ from typing import Any
 from transformer.extractors.ats_json_extractor import ATSJsonExtractor
 from transformer.extractors.csv_extractor import RecruiterCSVExtractor
 from transformer.extractors.github_extractor import GitHubExtractor
+from transformer.extractors.resume_extractor import ResumeExtractor
 
 from transformer.confidence.confidence_engine import ConfidenceEngine
 from transformer.merger.merge_engine import MergeEngine
@@ -47,6 +52,7 @@ class CandidateTransformer:
             recruiter_csv="candidate.csv",
             ats_json="candidate.json",
             github="octocat",
+            resume="candidate_resume.pdf",
             config=config,
         )
     """
@@ -56,6 +62,7 @@ class CandidateTransformer:
         self.csv_extractor = RecruiterCSVExtractor()
         self.ats_extractor = ATSJsonExtractor()
         self.github_extractor = GitHubExtractor()
+        self.resume_extractor = ResumeExtractor()
 
         self.merge_engine = MergeEngine()
         self.confidence_engine = ConfidenceEngine()
@@ -70,6 +77,7 @@ class CandidateTransformer:
         recruiter_csv: str | None = None,
         ats_json: str | None = None,
         github: str | None = None,
+        resume: str | None = None,
         config: OutputConfig | None = None,
     ) -> dict[str, Any]:
 
@@ -93,6 +101,10 @@ class CandidateTransformer:
         if github:
             log.info("Extracting GitHub")
             raw_candidates.append(self.github_extractor.safe_extract(github))
+
+        if resume:
+            log.info("Extracting resume")
+            raw_candidates.append(self.resume_extractor.safe_extract(resume))
 
         if not raw_candidates:
             raise ValueError("No input sources were supplied.")
@@ -131,6 +143,26 @@ class CandidateTransformer:
             profile,
             config,
         )
+
+        # -------------------------------
+        # Output validation
+        #
+        # The canonical profile being valid doesn't guarantee the
+        # *projection* of it is -- a bad rename path, a required field
+        # that on_missing quietly nulled out, or a type the config
+        # promised but the data doesn't actually match. This is a
+        # separate check from validate_profile() above: that one
+        # protects the internal record, this one protects the contract
+        # the caller's config actually asked for.
+        # -------------------------------
+
+        output_validation = self.validator.validate_output(result, config)
+
+        if not output_validation.valid:
+            raise ValueError("\n".join(output_validation.errors))
+
+        for warning in output_validation.warnings:
+            log.warning(warning)
 
         log.info("Pipeline complete")
 
