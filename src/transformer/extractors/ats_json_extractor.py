@@ -16,6 +16,9 @@ from typing import Any
 
 from transformer.extractors import BaseExtractor
 from transformer.models.core import RawCandidate, SourceType
+from transformer.utils.logger import get_logger
+
+log = get_logger(__name__)
 
 
 class ATSJsonExtractor(BaseExtractor):
@@ -27,13 +30,39 @@ class ATSJsonExtractor(BaseExtractor):
         if not data:
             return self._empty()
 
-        # Detect flavor
+        # Detect flavor.
+        #
+        # NOTE: we deliberately do NOT use a bare "emails" key as a Lever
+        # signal. Earlier this used `"applications" in data or "emails" in
+        # data`, but "emails" is a generic field name that plenty of
+        # non-Lever ATS exports also use -- that false-positive silently
+        # routed a generic-shaped payload into the Lever parser, which
+        # reads skills from "tags" instead of "skills" and dropped them
+        # with no warning. "tags" and "applications" are genuinely
+        # Lever-specific, so we require one of those instead.
         if "candidate" in data and isinstance(data["candidate"], dict):
-            return self._parse_greenhouse(data)
-        if "applications" in data or "emails" in data:
-            return self._parse_lever(data)
-        # Generic key-sniffing fallback
-        return self._parse_generic(data)
+            rc = self._parse_greenhouse(data)
+        elif "applications" in data or "tags" in data:
+            rc = self._parse_lever(data)
+        else:
+            rc = self._parse_generic(data)
+
+        # Defensive safety net: no matter which flavor we guessed, if we
+        # ended up with zero skills but the raw payload clearly has a
+        # plain "skills" key, use it. This protects against a wrong
+        # flavor guess silently losing a field we can plainly see is
+        # there -- exactly the failure mode that motivated this fix.
+        if not rc.skills_raw and data.get("skills"):
+            fallback_skills = self._coerce_list(data.get("skills"))
+            if fallback_skills:
+                log.warning(
+                    "ATS flavor parser found no skills; falling back to "
+                    "top-level 'skills' key",
+                    source=str(source_input)[:80],
+                )
+                rc.skills_raw = fallback_skills
+
+        return rc
 
     # ------------------------------------------------------------------
     # Greenhouse flavor
