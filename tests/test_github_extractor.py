@@ -246,3 +246,36 @@ def test_extract_with_mocked_api():
     candidate = extractor.extract("Jashan1001")
 
     assert candidate.full_name == "Jashan Singh"
+
+
+def test_rate_limit_degrades_immediately_without_blocking():
+    """
+    Regression test: _get() used to call time.sleep() (capped at 60s)
+    when the rate limit was hit, then check resp.status_code on the
+    SAME already-fetched response -- it never retried. That meant a
+    rate-limited call would block the whole pipeline for up to a
+    minute and still fail afterward, for zero benefit. This test fails
+    if a sleep is ever reintroduced on this path, by asserting the
+    call completes well under a second.
+    """
+    import time as time_module
+
+    rate_limited_response = Mock()
+    rate_limited_response.ok = False
+    rate_limited_response.status_code = 403
+    rate_limited_response.headers = {
+        "X-RateLimit-Remaining": "0",
+        "X-RateLimit-Reset": str(int(time_module.time()) + 1800),
+    }
+
+    session = Mock()
+    session.get.return_value = rate_limited_response
+
+    extractor = GitHubExtractor(session=session)
+
+    started = time_module.monotonic()
+    candidate = extractor.extract("someone-rate-limited")
+    elapsed = time_module.monotonic() - started
+
+    assert elapsed < 1.0, "rate-limit handling must not block the pipeline"
+    assert candidate.full_name is None  # degraded gracefully, no crash

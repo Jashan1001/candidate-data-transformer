@@ -195,10 +195,21 @@ class ResumeExtractor(BaseExtractor):
         return phones
 
     def _extract_location(self, lines: list[str]) -> Optional[str]:
-        """Check first 10 lines for location-like patterns."""
+        """Check first 10 lines for location-like patterns.
+
+        NOTE: the two alternatives below must stay in this order. Regex
+        alternation tries patterns left-to-right at each starting
+        position and accepts the first match, not the longest overall
+        match. With the order previously reversed, a 3-part location
+        like "Bengaluru, Karnataka, India" matched the 2-letter
+        US-state-code alternative first -- "[A-Z]{2}" greedily grabbed
+        just "Ka" from "Karnataka" -- truncating the result to
+        "Bengaluru, Ka" before the more specific 3-part alternative
+        ever got a chance to run.
+        """
         location_re = re.compile(
-            r"[A-Za-z.\s]+,\s*[A-Z]{2}(?:,\s*[A-Za-z.\s]+)?|"
-            r"[A-Za-z.\s]+,\s*[A-Za-z.\s]+,\s*[A-Za-z.\s]+",
+            r"[A-Za-z.\s]+,\s*[A-Za-z.\s]+,\s*[A-Za-z.\s]+|"
+            r"[A-Za-z.\s]+,\s*[A-Z]{2}(?:,\s*[A-Za-z.\s]+)?",
             re.I,
         )
         for line in lines:

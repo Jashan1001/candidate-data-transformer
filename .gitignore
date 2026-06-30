@@ -26,5 +26,8 @@ Thumbs.db
 # Environment variables
 .env
 
-# Generated outputs
+# Generated outputs (transient local runs only -- committed sample
+# outputs under output/sample_output_*.json are intentionally tracked
+# as evidence that the pipeline runs end-to-end; see README)
 output/*.json
+!output/sample_output_*.json

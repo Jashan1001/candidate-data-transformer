@@ -101,3 +101,21 @@ def test_invalid_resume():
     candidate = ResumeExtractor().extract("%%%%%%%")
 
     assert candidate is not None
+
+
+def test_three_part_location_is_not_truncated():
+    """
+    Regression test: a "City, Region, Country" location used to get
+    truncated to "City, Xx" because the 2-letter US-state-code regex
+    alternative matched first and grabbed just the first two letters
+    of the region name (e.g. "Ka" out of "Karnataka").
+    """
+    text = """
+    Priya Mehraa
+    Bengaluru, Karnataka, India
+    priya.mehra@gmail.com
+    """
+
+    candidate = ResumeExtractor().extract(text)
+
+    assert candidate.location_raw == "Bengaluru, Karnataka, India"

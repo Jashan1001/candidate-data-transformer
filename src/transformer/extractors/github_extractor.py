@@ -183,13 +183,28 @@ class GitHubExtractor(BaseExtractor):
             log.warning("GitHub HTTP error", url=url, error=str(exc))
             return None
 
-        # Rate-limit handling
+        # Rate-limit detection.
+        #
+        # NOTE: this used to sleep (capped at 60s) when the rate limit
+        # was hit, then fall through to check resp.status_code on the
+        # SAME already-fetched response object -- it never retried the
+        # request. That meant the sleep accomplished nothing but wasted
+        # up to a minute before failing anyway (worse: GitHub's actual
+        # reset window is usually much longer than 60s, so even a retry
+        # right after waking up would likely have failed too). Fixed to
+        # degrade immediately: log the real reset time for diagnostics,
+        # but don't block the pipeline waiting for it. A production
+        # version would instead use an authenticated GITHUB_TOKEN
+        # (raises the unauthenticated 60/hr limit to 5000/hr) rather
+        # than trying to wait out a rate limit mid-run.
         remaining = int(resp.headers.get("X-RateLimit-Remaining", 1))
         if remaining == 0:
             reset_ts = int(resp.headers.get("X-RateLimit-Reset", 0))
-            wait = max(reset_ts - int(time.time()), 0) + 1
-            log.warning("GitHub rate limit hit — waiting", seconds=wait)
-            time.sleep(min(wait, 60))  # cap at 60 s in pipelines
+            wait = max(reset_ts - int(time.time()), 0)
+            log.warning(
+                "GitHub rate limit hit — degrading gracefully without waiting",
+                reset_in_seconds=wait,
+            )
 
         if resp.status_code == 404:
             log.warning("GitHub resource not found", path=path)
