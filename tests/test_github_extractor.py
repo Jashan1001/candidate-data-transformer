@@ -1,6 +1,6 @@
 from transformer.extractors.github_extractor import GitHubExtractor
 from transformer.models.core import SourceType
-
+from unittest.mock import Mock
 
 class FakeResponse:
     def __init__(self, payload, status_code=200, headers=None):
@@ -83,7 +83,7 @@ def test_topics_aggregation_ignores_forks():
     assert topics == {"docker", "fastapi"}
 
 
-from unittest.mock import Mock
+
 
 
 def test_extract_username_from_url():

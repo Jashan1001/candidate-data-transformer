@@ -302,7 +302,7 @@ class ResumeExtractor(BaseExtractor):
         if not section_text:
             return []
         entries = []
-        lines = [l.strip() for l in section_text.splitlines() if l.strip()][
+        lines = [line.strip() for line in section_text.splitlines() if line.strip()][
             1:
         ]  # skip header
         degree_re = re.compile(
@@ -330,9 +330,7 @@ class ResumeExtractor(BaseExtractor):
 
     def _extract_headline(self, summary_text: str, lines: list[str]) -> Optional[str]:
         if summary_text:
-            content_lines = [l.strip() for l in summary_text.splitlines() if l.strip()][
-                1:3
-            ]
+            content_lines = [line.strip() for line in summary_text.splitlines() if line.strip()][1:3]
             if content_lines:
                 return " ".join(content_lines)[:200]
         # Fall back: second non-empty line after name (often the title)
