@@ -1,7 +1,7 @@
 {
     "id":"123",
-    "name":"Jashan Singh",
-    "emails":["jashan@gmail.com"],
+    "name":"Aarav Mehta",
+    "emails":["aarav.mehta@example.com"],
     "phones":["+919876543210"],
     "skills":["Python","Docker","Kafka"],
     "years_experience":3

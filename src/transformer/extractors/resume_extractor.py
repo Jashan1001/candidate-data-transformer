@@ -257,19 +257,21 @@ class ResumeExtractor(BaseExtractor):
             return []
         entries = []
         # Split by date ranges as anchors
+        # re.split() with a 2-group pattern returns alternating chunks:
+        #   [text_0, start_0, end_0, text_1, start_1, end_1, ..., text_n]
+        # text_i is the block of lines preceding the i-th date range (this is
+        # where the job title/company/summary for that entry live), and
+        # start_i/end_i are the captured date-range groups for that entry.
         parts = _DATE_RANGE_RE.split(section_text)
-        i = 0
-        while i < len(parts):
-            block = parts[i].strip()
-            if i + 2 < len(parts) and _DATE_RANGE_RE.search(parts[i] + parts[i + 1]):
-                start_raw = parts[i + 1].strip() if i + 1 < len(parts) else ""
-                end_raw = parts[i + 2].strip() if i + 2 < len(parts) else ""
-                entry = self._parse_experience_block(block, start_raw, end_raw)
-                if entry:
-                    entries.append(entry)
-                i += 3
-            else:
-                i += 1
+        i = 1
+        while i + 1 < len(parts):
+            start_raw = parts[i].strip()
+            end_raw = parts[i + 1].strip()
+            block = parts[i - 1].strip()
+            entry = self._parse_experience_block(block, start_raw, end_raw)
+            if entry:
+                entries.append(entry)
+            i += 3
         return entries
 
     def _parse_experience_block(
@@ -282,9 +284,12 @@ class ResumeExtractor(BaseExtractor):
 ]
         if not lines:
             return None
-        # Heuristic: title is usually the last meaningful line before the date
-        title = lines[-1] if lines else None
-        company = lines[-2] if len(lines) >= 2 else None
+        # Heuristic: on a standard resume the two lines immediately preceding
+        # the date range are [title, company] in that order (title first,
+        # company second). Any earlier lines belong to the previous entry's
+        # trailing summary and are discarded here.
+        company = lines[-1] if lines else None
+        title = lines[-2] if len(lines) >= 2 else None
         return {
             "title": title,
             "company": company,

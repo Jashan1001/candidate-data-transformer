@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "candidate-data-transformer"
+version = "0.1.0"
+description = "Multi-source candidate data transformer - Eightfold AI Engineering Internship Assignment"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.0",
+    "phonenumbers>=8.13",
+    "pdfplumber>=0.9",
+    "python-docx>=1.1",
+    "requests>=2.31",
+    "structlog>=23.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4", "ruff>=0.5"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

@@ -1,0 +1,31 @@
+Aarav Mehta
+Backend Software Engineer
+aarav.mehta@example.com | +91 98765 43210
+Bengaluru, Karnataka, India
+linkedin.com/in/aaravmehta | github.com/aaravmehta
+
+Professional Summary
+Backend engineer with 3+ years of experience building scalable APIs and data pipelines.
+Comfortable working across Python, distributed systems, and cloud infrastructure.
+
+Skills
+Python, Django, FastAPI, PostgreSQL, Docker, Kubernetes, AWS, Kafka, Redis, Git
+
+Work Experience
+
+Backend Engineer
+TechNova Solutions
+Jun 2022 - Present
+Built and maintained REST APIs serving over 1 million daily requests.
+Designed a candidate data ingestion pipeline consolidating multiple recruiter sources.
+
+Software Engineer Intern
+DataSphere Labs
+Jan 2021 - May 2022
+Developed internal tooling for data validation and ETL workflows.
+Collaborated with the platform team to migrate services to containerized deployments.
+
+Education
+
+National Institute of Technology
+B.Tech in Computer Science, 2022
