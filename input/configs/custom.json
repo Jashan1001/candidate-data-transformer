@@ -23,11 +23,6 @@
         {
             "path": "github_profile",
             "from": "links.github"
-        },
-        {
-            "path": "linkedin_profile",
-            "from": "links.linkedin",
-            "required": true
         }
     ],
     "include_confidence": true,
