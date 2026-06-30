@@ -47,6 +47,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        "--resume",
+        help="Resume file (PDF, DOCX, or TXT)",
+    )
+
+    parser.add_argument(
         "--config",
         required=True,
         help="Projection configuration JSON",
@@ -78,14 +83,22 @@ def main() -> None:
 
     config = load_config(args.config)
 
+    import sys
+
     transformer = CandidateTransformer()
 
-    result = transformer.run(
-        recruiter_csv=args.csv,
-        ats_json=args.ats,
-        github=args.github,
-        config=config,
-    )
+    try:
+        result = transformer.run(
+            recruiter_csv=args.csv,
+            ats_json=args.ats,
+            github=args.github,
+            resume=args.resume,
+            config=config,
+        )
+    except ValueError as exc:
+        log.error("Transformation failed", error=str(exc))
+        print(f"✗ Error: {exc}", file=sys.stderr)
+        sys.exit(1)
 
     output_path = ensure_parent(args.output)
 

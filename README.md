@@ -16,6 +16,35 @@
 
 ---
 
+## Quick Start
+
+```bash
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Run the pipeline (default schema, 2 structured sources)
+python -m transformer.cli \
+  --csv input/recruiter.csv \
+  --ats input/ats/sample.json \
+  --config input/configs/default.json \
+  --output output/result_default.json
+
+# 3. Run with a structured + unstructured source and a custom output schema
+python -m transformer.cli \
+  --csv input/recruiter.csv \
+  --resume input/resume/sample_resume.txt \
+  --config input/configs/custom.json \
+  --output output/result_custom.json
+
+# 4. Run the test suite
+PYTHONPATH=src pytest tests/ -v
+```
+
+All flags: `--csv`, `--ats`, `--github`, `--resume`, `--config` (required), `--output` (required), `--debug`.
+Pre-generated outputs for both configs (and a required-field error demo) are committed under `output/`.
+
+---
+
 ## Overview
 
 Recruiters and hiring platforms rarely receive candidate information from a single source. A candidate's profile may be distributed across recruiter spreadsheets, Applicant Tracking Systems (ATS), GitHub profiles, resumes, and other external systems. These sources often contain incomplete, duplicated, or conflicting information.

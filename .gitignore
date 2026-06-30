@@ -26,8 +26,19 @@ Thumbs.db
 # Environment variables
 .env
 
-# Generated outputs (transient local runs only -- committed sample
-# outputs under output/sample_output_*.json are intentionally tracked
-# as evidence that the pipeline runs end-to-end; see README)
+# Coverage artifacts
+.coverage
+htmlcov/
+.coverage.*
+
+# Don't accidentally commit packaged zips of this repo
+*.zip
+
+# Generated outputs (transient local runs only -- the committed sample
+# outputs under output/ are intentionally tracked as evidence that the
+# pipeline runs end-to-end; see README Quick Start)
 output/*.json
-!output/sample_output_*.json
+output/*.txt
+!output/result_default.json
+!output/result_custom.json
+!output/result_strict_demo_ERROR.txt
